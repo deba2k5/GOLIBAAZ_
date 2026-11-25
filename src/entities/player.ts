@@ -354,12 +354,14 @@ export class Player {
     if (stats.comboKing && s.run.combo >= 10) dmgMul *= 1.25;
     const spread = deg(def.spread) * stats.spread;
 
+    const sent: number[][] = [];
     for (let i = 0; i < def.pellets; i++) {
       const ang = this.aim + (Math.random() - 0.5) * spread;
       const speed = def.speed * stats.bulletSpeed * (def.pellets > 1 ? rnd(0.82, 1.08) : 1);
       const crit = Math.random() < stats.crit;
       const b = s.bullets.firePlayer(def.bullet, mx, my, ang, speed, def.bulletR, def.dmg * dmgMul * (crit ? 2 : 1), def.life);
       if (!b) break;
+      if (s.versus) sent.push([Math.round(mx), Math.round(my), +ang.toFixed(4), Math.round(speed), def.bulletR, def.life]);
       b.pierce = def.pierce + stats.pierce;
       b.bounce = def.bounce + stats.bounce;
       b.knock = def.knock;
@@ -368,6 +370,8 @@ export class Player {
       if (crit || (stats.lastRound && last)) b.img.setTint(0xffc94a).setScale(1.25);
       else if (w.perfect) b.img.setTint(0xfff0b0);
     }
+
+    if (s.versus && sent.length) s.versus.sendShot(def.id, sent, Math.max(1, Math.round((def.dmg * dmgMul) / 14)));
 
     this.kx -= ca * def.kick * stats.kick;
     this.ky -= sa * def.kick * stats.kick;
@@ -476,21 +480,24 @@ export class Player {
   // ------------------------------------------------------------ damage
 
   /** Returns true if the hit landed (false while rolling or invulnerable). */
-  hurt(ang: number): boolean {
+  hurt(ang: number, dmg = 1): boolean {
     if (this.dead || this.invuln > 0 || this.frozen) return false;
     if (this.rolling && this.rollT > ROLL_DUR - ROLL_IFRAMES) return false;
     const s = this.scene;
+    const vs = !!s.versus;
     if (this.god) {
       this.invuln = 0.4;
       s.run.damageTaken++;
       return true;
     }
     s.run.damageTaken++;
-    this.invuln = 1.25;
-    this.kx += Math.cos(ang) * 260;
-    this.ky += Math.sin(ang) * 260;
-    s.fx.shake(0.7);
-    s.fx.hitstop(0.1);
+    // versus: every bullet counts (no grace period), hits shove less and never freeze the frame
+    this.invuln = vs ? 0 : 1.25;
+    const push = vs ? 70 : 260;
+    this.kx += Math.cos(ang) * push;
+    this.ky += Math.sin(ang) * push;
+    s.fx.shake(vs ? 0.3 : 0.7);
+    if (!vs) s.fx.hitstop(0.1);
     s.breakCombo();
     if (this.armor > 0) {
       this.armor--;
@@ -499,18 +506,21 @@ export class Player {
       s.fx.sparks(this.x, this.y, 0, 12, 0xcfe4ff, Math.PI, 420);
       s.fx.text(this.x, this.y - 44, 'ARMOR BROKEN', '#9fc8ea', 22, 0.8);
     } else {
-      this.hp--;
+      this.hp -= dmg;
       audio.play('hurt');
       s.fx.blood(this.x, this.y, ang, 1.5);
       s.events.emit('hurt');
     }
     s.fx.ring(this.x, this.y, 30, 190, 0.3, 0xffffff, 0.7, 'ringThin');
-    // mercy: sweep away bullets that are already on top of the player
-    for (const b of s.bullets.list) {
-      if (!b.active || b.friendly) continue;
-      const dx = b.x - this.x;
-      const dy = b.y - this.y;
-      if (dx * dx + dy * dy < 150 * 150) b.life = 0;
+    // mercy: sweep away bullets that are already on top of the player (not in versus: a shotgun
+    // blast is a volley of bullets that should each land)
+    if (!vs) {
+      for (const b of s.bullets.list) {
+        if (!b.active || b.friendly) continue;
+        const dx = b.x - this.x;
+        const dy = b.y - this.y;
+        if (dx * dx + dy * dy < 150 * 150) b.life = 0;
+      }
     }
     if (s.run.stats.adrenaline) this.adrenalineT = 4;
     if (this.hp <= 0) {

@@ -25,7 +25,7 @@ await page.goto(`http://localhost:${port}/?${q}`);
 await page.waitForTimeout(1500);
 
 const state = () => page.evaluate(() => {
-  const s = window.__recoil;
+  const s = window.__golibaaz;
   if (!s || !s.run || !s.room) return null;
   const p = s.player;
   return {

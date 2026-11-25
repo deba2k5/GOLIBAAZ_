@@ -1,7 +1,7 @@
 import { loadSave } from './save';
 
 /**
- * All sound in RECOIL is synthesized at runtime with WebAudio:
+ * All sound in GOLIBAAZ is synthesized at runtime with WebAudio:
  * no audio files to load. SFX are short layered noise/oscillator bursts,
  * music is a small step sequencer whose layers fade with combat intensity.
  */

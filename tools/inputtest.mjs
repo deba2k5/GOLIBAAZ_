@@ -19,7 +19,7 @@ const check = (name, ok, extra = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? '  ' + extra : ''}`);
 };
 const st = () => page.evaluate(() => {
-  const s = window.__recoil;
+  const s = window.__golibaaz;
   const g = window.__game;
   const active = g.scene.getScenes(true).map((x) => x.scene.key);
   if (!s || !s.run || !s.player || !active.includes('Game')) return { active };
@@ -153,7 +153,7 @@ check('time runs again after resume', s.time > t0);
 
 // --- weapon switching (give a second gun through the debug hook, then use keys + wheel)
 await page.evaluate(() => {
-  const s = window.__recoil;
+  const s = window.__golibaaz;
   s.pickups.spawn('weapon', s.player.x, s.player.y, { weapon: 'shotgun' });
 });
 await page.waitForTimeout(300);
@@ -180,7 +180,7 @@ await page.waitForTimeout(400);
 for (const [key, gun] of [['1', 'pistol'], ['2', 'shotgun']]) {
   await page.keyboard.press(key);
   await page.evaluate(() => {
-    const s = window.__recoil;
+    const s = window.__golibaaz;
     const p = s.player;
     p.god = true;
     p.reloading = false;
@@ -193,15 +193,15 @@ for (const [key, gun] of [['1', 'pistol'], ['2', 'shotgun']]) {
   const hp0 = await page.evaluate(() => {
     const e = window.__pb;
     e.stun = 5; // hold it in place on the player
-    e.x = window.__recoil.player.x;
-    e.y = window.__recoil.player.y;
+    e.x = window.__golibaaz.player.x;
+    e.y = window.__golibaaz.player.y;
     return e.hp;
   });
   await page.mouse.move(1400, 300);
   await page.mouse.down(); await page.mouse.up();
   await page.waitForTimeout(250);
   const r = await page.evaluate(() => {
-    const s = window.__recoil;
+    const s = window.__golibaaz;
     const e = window.__pb;
     const out = { hp: e.hp, weapon: s.player.weapon.def.id, d: Math.hypot(e.x - s.player.x, e.y - s.player.y) };
     s.enemies.kill(e);
@@ -214,10 +214,10 @@ for (const [key, gun] of [['1', 'pistol'], ['2', 'shotgun']]) {
 }
 
 // --- walk through a door into the next room
-const dir = await page.evaluate(() => Object.keys(window.__recoil.room.node.doors)[0]);
+const dir = await page.evaluate(() => Object.keys(window.__golibaaz.room.node.doors)[0]);
 const key = { n: 'w', s: 's', e: 'd', w: 'a' }[dir];
 await page.evaluate((d) => {
-  const s = window.__recoil;
+  const s = window.__golibaaz;
   const c = s.room.doorCentre(d);
   const e = s.room.entry(d);
   s.player.setPos(e.x, e.y);
@@ -262,7 +262,7 @@ check('controls still work after returning from the menu', again.x > 0 && again.
 
 // --- death and retry through the real UI
 await page.evaluate(() => {
-  const s = window.__recoil;
+  const s = window.__golibaaz;
   s.player.hp = 1;
   s.player.invuln = 0;
   s.player.hurt(0);

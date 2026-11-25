@@ -244,13 +244,25 @@ export class Bullets {
               break;
             }
           }
+          // --- the other player (versus): damage is decided on their machine, this only stops the bullet
+          const vs = scene.versus;
+          if (!dead && vs && vs.remote.alive) {
+            const dx = vs.remote.x - b.x;
+            const dy = vs.remote.y - b.y;
+            const rr = vs.remote.hitR + b.r * 0.8;
+            if (!vs.remote.rolling && dx * dx + dy * dy < rr * rr) {
+              scene.fx.sparks(b.x, b.y, Math.atan2(b.vy, b.vx) + Math.PI, 5, 0xff8a7a, 0.9, 320);
+              vs.remote.flash();
+              dead = true;
+            }
+          }
         } else if (!player.dead) {
           // --- player
           const dx = player.x - b.x;
           const dy = player.y - b.y;
           const rr = player.hitR + b.r * 0.8;
           if (dx * dx + dy * dy < rr * rr) {
-            if (player.hurt(Math.atan2(b.vy, b.vx))) {
+            if (player.hurt(Math.atan2(b.vy, b.vx), b.dmg)) {
               dead = true;
               break;
             }

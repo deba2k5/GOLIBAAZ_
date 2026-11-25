@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <title>RECOIL</title>
+    <title>GOLIBAAZ</title>
     <meta name="description" content="A top-down action roguelike: dodge-roll through bullet patterns, clear rooms, beat three bosses." />
     <meta name="theme-color" content="#08070a" />
     <meta name="color-scheme" content="dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="RECOIL" />
+    <meta name="apple-mobile-web-app-title" content="GOLIBAAZ" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2317120f'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23f3e6c8' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23d8452f'/%3E%3C/svg%3E" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
@@ -34,6 +34,8 @@
         left: env(safe-area-inset-left, 0px);
       }
       canvas { display: block; touch-action: none; }
+      /* Privy sign-in modal: allow typing and selecting inside it */
+      #privy-dialog, #privy-dialog *, [data-privy-dialog], input, textarea { -webkit-user-select: text; user-select: text; touch-action: auto; }
 
       #rotate {
         position: fixed; inset: 0; z-index: 10;
@@ -45,7 +47,7 @@
       #rotate[hidden] { display: none; }
       #rotate .phone {
         width: 64px; height: 108px; border: 4px solid #f3e6c8; border-radius: 12px; position: relative;
-        animation: recoil-turn 2.4s ease-in-out infinite;
+        animation: golibaaz-turn 2.4s ease-in-out infinite;
       }
       #rotate .phone::after {
         content: ''; position: absolute; left: 50%; bottom: 8px; width: 10px; height: 10px; margin-left: -5px;
@@ -54,7 +56,7 @@
       #rotate h1 { margin: 10px 0 0; font-weight: 700; font-size: 30px; letter-spacing: 4px; }
       #rotate .bar { width: 120px; height: 3px; background: #d8452f; }
       #rotate p { margin: 0; font-weight: 400; font-size: 17px; letter-spacing: 1px; color: #a3978a; max-width: 280px; line-height: 1.4; }
-      @keyframes recoil-turn {
+      @keyframes golibaaz-turn {
         0%, 25% { transform: rotate(0deg); }
         55%, 80% { transform: rotate(-90deg); }
         100% { transform: rotate(0deg); }
@@ -67,7 +69,7 @@
       <div class="phone"></div>
       <h1>TURN YOUR PHONE</h1>
       <div class="bar"></div>
-      <p>RECOIL plays sideways. Rotate to landscape to continue.</p>
+      <p>GOLIBAAZ plays sideways. Rotate to landscape to continue.</p>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

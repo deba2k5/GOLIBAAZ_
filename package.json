@@ -1,5 +1,5 @@
 {
-  "name": "recoil",
+  "name": "golibaaz",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "relay": "node server/relay.mjs",
     "typecheck": "tsc --noEmit",
     "test:gen": "tsx tools/test-gen.ts",
     "test:play": "node tools/playtest.mjs",
@@ -14,9 +15,17 @@
   },
   "dependencies": {
     "@fontsource/oswald": "^5.1.0",
-    "phaser": "3.90.0"
+    "@privy-io/react-auth": "^3.52.1",
+    "jose": "^6.2.18",
+    "phaser": "3.90.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "viem": "^2.58.6",
+    "ws": "^8.23.0"
   },
   "devDependencies": {
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
     "playwright-core": "^1.48.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",

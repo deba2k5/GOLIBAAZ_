@@ -1,4 +1,6 @@
-const KEY = 'recoil.save.v1';
+const KEY = 'golibaaz.save.v1';
+/** Saves from before the game was renamed are picked up once and moved over. */
+const OLD_KEY = 'recoil.save.v1';
 
 export interface SaveData {
   bestScore: number;
@@ -28,7 +30,7 @@ export function loadSave(): SaveData {
   if (cache) return cache;
   let data: Partial<SaveData> = {};
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) ?? localStorage.getItem(OLD_KEY);
     if (raw) data = JSON.parse(raw);
   } catch {
     data = {};

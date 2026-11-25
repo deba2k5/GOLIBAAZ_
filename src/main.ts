@@ -9,6 +9,11 @@ import { BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { MenuScene } from './scenes/MenuScene';
 import { UIScene } from './scenes/UIScene';
+import { AvatarScene } from './versus/AvatarScene';
+import { BetScene } from './versus/BetScene';
+import { LobbyScene } from './versus/LobbyScene';
+import { VsHud } from './versus/VsHud';
+import { mountWallet } from './web3/mount';
 
 /** Stop the page itself from zooming, scrolling or bouncing under the player's thumbs. */
 function lockPage(): void {
@@ -111,7 +116,7 @@ async function boot(): Promise<void> {
     // two thumbs at once on phones (move + aim), plus a spare for the action buttons
     input: { activePointers: 4 },
     disableContextMenu: true,
-    scene: [BootScene, MenuScene, GameScene, UIScene],
+    scene: [BootScene, MenuScene, BetScene, AvatarScene, LobbyScene, GameScene, UIScene, VsHud],
   });
 
   // Browsers only allow audio after a user gesture. On touch screens only the touchend /
@@ -127,4 +132,5 @@ async function boot(): Promise<void> {
   (window as unknown as { __game: Phaser.Game }).__game = game;
 }
 
+mountWallet();
 void boot();

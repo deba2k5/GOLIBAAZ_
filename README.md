@@ -1,4 +1,4 @@
-# RECOIL
+# GOLIBAAZ
 
 A top-down action roguelike: dodge-roll through bullet patterns, clear procedurally generated rooms, beat three bosses.
 
@@ -26,6 +26,12 @@ Then open http://localhost:5173. `npm run build` produces a static site in `dist
 | E | Interact: chests, shop, pickups, stairs |
 | 1-4 / Mouse wheel | Switch weapon |
 | Esc / P | Pause |
+
+## Versus (online 1v1)
+
+Pick **VERSUS** on the menu, then **CREATE ROOM** and send the 4-letter code to a friend, who picks **JOIN ROOM** and enters it. First to 3 round wins. Everyone gets the same four guns each round (Sidearm, Carbine, Pump Shotgun, Peacemaker); Esc leaves the match.
+
+Every browser simulates only its own player and reports its position and shots, so damage is always decided on the machine of whoever got hit. A small relay (`server/relay.mjs`) pairs the two players and forwards messages; `npm run dev` and `npm run preview` already serve it at `/ws`, so both players just open the same address (for example `http://<your-ip>:5173`). To host the game as a static site, run the relay separately (`npm run relay`, default port 8787) and build with `VITE_RELAY_URL=wss://your-relay-host/ws`.
 
 ## Mobile
 

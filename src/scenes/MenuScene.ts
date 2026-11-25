@@ -55,8 +55,8 @@ export class MenuScene extends Phaser.Scene {
     // Touch layout: everything is drawn at roughly 0.4x on a phone, so text and targets are larger
     // and the two secondary buttons sit side by side to keep it all inside 1080px.
     const L = touch
-      ? { titleY: 210, titleSize: 230, barY: 322, barW: 640, subY: 380, subSize: 40, startY: 548, rowY: 758, bestY: 905, bestSize: 40, hintY: 1010 }
-      : { titleY: 300, titleSize: 300, barY: 446, barW: 760, subY: 488, subSize: 32, startY: 640, rowY: 0, bestY: 940, bestSize: 22, hintY: GH - 36 };
+      ? { titleY: 200, titleSize: 220, barY: 306, barW: 640, subY: 362, subSize: 38, startY: 490, rowY: 810, bestY: 945, bestSize: 36, hintY: 1018 }
+      : { titleY: 300, titleSize: 300, barY: 446, barW: 760, subY: 488, subSize: 32, startY: 640, rowY: 0, bestY: 975, bestSize: 20, hintY: GH - 30 };
 
     // a pool of warm light behind the title
     this.add.image(GW / 2, L.titleY + 30, 'light').setScale(7, 3.2).setTint(0xff9a50).setAlpha(0.2).setBlendMode(Phaser.BlendModes.ADD).setDepth(4);
@@ -68,7 +68,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     // ---- title
-    const title = label(this, GW / 2, L.titleY, 'RECOIL', L.titleSize, CREAM, '700', touch ? 26 : 34).setDepth(10);
+    const title = label(this, GW / 2, L.titleY, 'GOLIBAAZ', L.titleSize, CREAM, '700', touch ? 26 : 34).setDepth(10);
     title.setShadow(0, 10, '#000000', 24, false, true);
     const bar = this.add.rectangle(GW / 2, L.barY, L.barW, 5, 0xd8452f).setDepth(10).setScale(0, 1);
     const sub = label(this, GW / 2, L.subY, 'DODGE.  SHOOT.  DESCEND.', L.subSize, DIM, '500', 14).setDepth(10);
@@ -83,14 +83,16 @@ export class MenuScene extends Phaser.Scene {
     const run = (p?: Phaser.Input.Pointer) => this.startRun(p);
     const buttons = touch
       ? [
-        makeButton(this, GW / 2, L.startY, 'START RUN', run, { primary: true, w: 760, h: 170, size: 60 }),
+        makeButton(this, GW / 2, L.startY, 'START RUN', run, { primary: true, w: 760, h: 160, size: 58 }),
+        makeButton(this, GW / 2, 660, 'VERSUS  ·  ONLINE 1V1', () => this.startVersus(), { w: 760, h: 130, size: 44 }),
         makeButton(this, GW / 2 - 300, L.rowY, 'HOW TO PLAY', () => this.showHelp(), { w: 560, h: 150, size: 44 }),
         makeButton(this, GW / 2 + 300, L.rowY, 'OPTIONS', () => this.showOptions(), { w: 560, h: 150, size: 44 }),
       ]
       : [
-        makeButton(this, GW / 2, 640, 'START RUN', run, { primary: true, w: 440, h: 78, size: 36 }),
-        makeButton(this, GW / 2, 738, 'HOW TO PLAY', () => this.showHelp(), { w: 440 }),
-        makeButton(this, GW / 2, 822, 'OPTIONS', () => this.showOptions(), { w: 440 }),
+        makeButton(this, GW / 2, 620, 'START RUN', run, { primary: true, w: 440, h: 78, size: 36 }),
+        makeButton(this, GW / 2, 712, 'VERSUS  ·  ONLINE 1V1', () => this.startVersus(), { w: 440 }),
+        makeButton(this, GW / 2, 796, 'HOW TO PLAY', () => this.showHelp(), { w: 440 }),
+        makeButton(this, GW / 2, 880, 'OPTIONS', () => this.showOptions(), { w: 440 }),
       ];
     buttons.forEach(({ c }, i) => {
       c.setDepth(10).setAlpha(0);
@@ -149,6 +151,15 @@ export class MenuScene extends Phaser.Scene {
     const cam = this.cameras.main;
     cam.fadeOut(260, 5, 4, 5);
     cam.once('camerafadeoutcomplete', () => this.scene.start('Game', {}));
+  }
+
+  private startVersus(): void {
+    if (this.starting) return;
+    this.starting = true;
+    audio.unlock();
+    const cam = this.cameras.main;
+    cam.fadeOut(200, 5, 4, 5);
+    cam.once('camerafadeoutcomplete', () => this.scene.start('Bet'));
   }
 
   private closePanel(): void {

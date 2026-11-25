@@ -17,6 +17,7 @@ import { WEAPONS, WEAPON_IDS, makeWeapon } from '../entities/weapons';
 import { Fx } from '../gfx/fx';
 import { DIRS, type Dir, type FloorPlan, OPP, type RoomNode, generateFloor } from '../world/floorgen';
 import { type Prop, Room } from '../world/room';
+import { Versus, type VersusInit, arenaPlan } from '../versus/versus';
 import { generateWaves } from '../world/roomgen';
 
 export interface RunState {
@@ -55,6 +56,8 @@ export interface StartData {
   speed?: number;
   weapons?: string[];
   room?: string;
+  /** Online 1v1: a connected relay, which side of the arena you spawn on, and the shared seed. */
+  versus?: VersusInit;
 }
 
 /** How quickly the camera eases between zoom levels (touch: into and out of a boss fight). */
@@ -114,6 +117,8 @@ export class GameScene extends Phaser.Scene {
   interactTarget: Pickup | null = null;
   roomActive = false;
   bot: Bot | null = null;
+  /** Set while playing an online 1v1 instead of a roguelike run. */
+  versus: Versus | null = null;
   speed = 1;
   introT = 0;
   touch: TouchState = { mx: 0, my: 0, aimAng: 0, aiming: false, fire: false };
@@ -164,6 +169,7 @@ export class GameScene extends Phaser.Scene {
     const d = this.startData;
     this.room = undefined as unknown as Room;
     this.bot = null;
+    this.versus = null;
     this.lastStand = false;
     this.paused = false;
     this.modal = false;
@@ -207,13 +213,14 @@ export class GameScene extends Phaser.Scene {
     this.player.god = d.god ?? false;
     this.fade = this.add.rectangle(GW / 2, GH / 2, GW + 200, GH + 200, 0x050405, 1).setScrollFactor(0).setDepth(100);
 
-    const seed = d.seed ?? Math.floor(Math.random() * 0x7fffffff);
+    const seed = d.versus?.seed ?? d.seed ?? Math.floor(Math.random() * 0x7fffffff);
     this.rng = new RNG(seed);
     this.run = {
       seed, floorIndex: 0, loop: 0, plan: null as unknown as FloorPlan, roomId: 0, coins: 0, coinsEarned: 0, score: 0, kills: 0,
       combo: 0, comboT: 0, comboMax: 3.2, bestCombo: 0, time: 0, upgrades: {}, stats: computeStats({}),
       damageDealt: 0, damageTaken: 0, roomsCleared: 0, shots: 0, rolls: 0, perfects: 0, bossesKilled: 0, over: false, won: false,
     };
+    if (d.versus) this.versus = new Versus(this, d.versus);
     this.player.hp = this.player.maxHp;
     for (const id of d.weapons ?? []) {
       if (WEAPONS[id]) this.player.giveWeapon(makeWeapon(id));
@@ -221,6 +228,10 @@ export class GameScene extends Phaser.Scene {
 
     this.scene.launch('UI');
     this.startFloor(d.floor ?? 0, 0, true);
+    if (this.versus) {
+      this.versus.begin();
+      this.scene.launch('VsHud');
+    }
 
     if (d.room) {
       const target = this.run.plan.rooms.find((r) => r.type === d.room);
@@ -236,22 +247,25 @@ export class GameScene extends Phaser.Scene {
     // phone locked or app switched
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.onBlur, this);
     this.events.once('shutdown', () => {
+      this.versus?.dispose();
       this.game.events.off('blur', this.onBlur, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.onBlur, this);
       this.input.off('wheel');
       this.input.off('pointerdown');
       for (const key of Object.values(this.keys)) key.off('down');
     });
-    (window as unknown as { __recoil: unknown }).__recoil = this;
-    writeSave({ runs: loadSave().runs + 1 });
+    (window as unknown as { __golibaaz: unknown }).__golibaaz = this;
+    if (!this.versus) writeSave({ runs: loadSave().runs + 1 });
   }
 
   private onBlur(): void {
-    if (!this.run.over && !this.modal && !this.bot) this.events.emit('pause', true);
+    if (!this.run.over && !this.modal && !this.bot && !this.versus) this.events.emit('pause', true);
   }
 
   /** Target camera zoom for the current input mode; touch pulls back for boss fights. */
   get zoom(): number {
+    // versus: pull back so the whole arena (and the other player) stays on screen
+    if (this.versus) return isTouch() ? 1.15 : 1;
     if (!isTouch()) return ZOOM;
     return this.bossEnemy ? TOUCH_BOSS_ZOOM : TOUCH_ZOOM;
   }
@@ -273,7 +287,7 @@ export class GameScene extends Phaser.Scene {
     const run = this.run;
     run.floorIndex = index;
     run.loop = loop;
-    run.plan = generateFloor(this.rng.seed(), index, loop);
+    run.plan = this.versus ? arenaPlan(run.seed) : generateFloor(this.rng.seed(), index, loop);
     this.theme = THEMES[index % THEMES.length];
     this.fx.darkColor = this.theme.dark;
     this.fx.darkAlpha = this.theme.darkAlpha;
@@ -701,6 +715,16 @@ export class GameScene extends Phaser.Scene {
 
   onPlayerDied(): void {
     const p = this.player;
+    if (this.versus) {
+      // a lost round, not the end of a run: the versus layer decides what happens next
+      this.fx.blood(p.x, p.y, 0, 4);
+      this.fx.debris(p.x, p.y, 0, 12, 0x30495a, 'chunk', 460, Math.PI);
+      this.fx.ring(p.x, p.y, 30, 500, 0.6, 0xffffff, 0.8);
+      this.fx.shake(0.8);
+      audio.play('death');
+      this.versus.onMyDeath();
+      return;
+    }
     this.run.over = true;
     this.fx.slowmo(0.15, 1.6);
     this.fx.blood(p.x, p.y, 0, 4);
@@ -809,7 +833,10 @@ export class GameScene extends Phaser.Scene {
   update(time: number, delta: number): void {
     const esc = this.take('esc');
     const pKey = this.take('p');
-    if (esc || pKey) {
+    if (this.versus) {
+      // no pausing a live match: Esc leaves it
+      if (esc) this.versus.leave();
+    } else if (esc || pKey) {
       if (!this.run.over && !this.modal) this.events.emit('pause', !this.paused);
     }
     if (this.paused || this.modal) {
@@ -867,6 +894,7 @@ export class GameScene extends Phaser.Scene {
       this.fade.setAlpha(Math.max(0, this.fade.alpha - dtReal * 2.5));
     }
     if (!this.room) return;
+    this.versus?.update(dtReal);
 
     let dt = this.fx.timeScale(dtReal);
     if (this.modal) dt = 0;
@@ -951,6 +979,11 @@ export class GameScene extends Phaser.Scene {
     this.fx.update(dtReal, this.modal ? dtReal * 0.6 : dt);
   }
 
+  /** Re-centre the camera instantly (versus: after a round reset moves the player). */
+  snapCameraNow(): void {
+    this.snapCamera();
+  }
+
   private snapCamera(): void {
     // snap to the mode's base zoom; present() then eases into a boss fight's wider view
     this.cameras.main.setZoom(isTouch() ? TOUCH_ZOOM : ZOOM);
@@ -1009,6 +1042,7 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     fx.beginLights();
     if (!p.dead) fx.light(p.x, p.y, 640, 1);
+    if (this.versus?.remote.alive) fx.light(this.versus.remote.x, this.versus.remote.y, 520, 0.9);
     for (const l of this.room.lamps) fx.light(l.x, l.y, 380, 0.85);
     for (const e of this.enemies.list) {
       if (e.boss) fx.light(e.x, e.y, 560, 0.9);

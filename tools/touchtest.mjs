@@ -78,7 +78,7 @@ async function tap(x, y, id = 9) {
 }
 
 const st = () => page.evaluate(() => {
-  const s = window.__recoil;
+  const s = window.__golibaaz;
   const g = window.__game;
   const active = g.scene.getScenes(true).map((x) => x.scene.key);
   const ui = g.scene.getScene('UI');
@@ -226,7 +226,7 @@ s = await st();
 check('RELOAD starts a reload', s.reloading === true, `clip=${s.clip}`);
 // the perfect window is 36%-54% of the reload: wait in the page until it is 42% done, then tap
 await page.evaluate(() => new Promise((res) => {
-  const p = window.__recoil.player;
+  const p = window.__golibaaz.player;
   const tick = () => (!p.reloading || p.reloadT / p.reloadDur >= 0.42 ? res() : requestAnimationFrame(tick));
   tick();
 }));
@@ -256,7 +256,7 @@ check('BLAST uses a charge', s.blanks === a.blanks - 1, `${a.blanks} -> ${s.blan
 s = await st();
 check('INTERACT button is hidden with nothing nearby', !s.interactBtn);
 await page.evaluate(() => {
-  const g = window.__recoil;
+  const g = window.__golibaaz;
   g.pickups.spawn('weapon', g.player.x, g.player.y, { weapon: 'shotgun' });
 });
 await wait(400);
@@ -309,7 +309,7 @@ await up(3);
 
 // ================================================================ reward cards
 a = await st();
-await page.evaluate(() => window.__recoil.offerBossReward());
+await page.evaluate(() => window.__golibaaz.offerBossReward());
 await wait(900);
 s = await st();
 check('reward cards are up', s.modal && s.overlay);
@@ -340,7 +340,7 @@ check('RESUME after rotating back resumes', (await st()).paused === false);
 
 // ================================================================ boss fight
 await page.evaluate(() => {
-  const g = window.__recoil;
+  const g = window.__golibaaz;
   g.player.god = true;
   const boss = g.run.plan.rooms.find((r) => r.type === 'boss');
   g.enterRoom(boss.id, null);
@@ -353,14 +353,14 @@ s = await st();
 check('touch camera eases out to the boss zoom', Math.abs(s.zoom - 1.3) < 0.02, `zoom=${s.zoom.toFixed(3)}`);
 await down(3, AIM.x, AIM.y);
 await move(3, AIM.x, AIM.y - 150);
-await page.evaluate(() => { const g = window.__recoil; g.run.combo = 8; g.run.comboT = 3; });
+await page.evaluate(() => { const g = window.__golibaaz; g.run.combo = 8; g.run.comboT = 3; });
 await wait(700);
 await shot('touch_boss');
 await up(3);
 
 // ================================================================ game over and retry
 await page.evaluate(() => {
-  const g = window.__recoil;
+  const g = window.__golibaaz;
   g.player.god = false;
   g.player.hp = 1;
   g.player.invuln = 0;
