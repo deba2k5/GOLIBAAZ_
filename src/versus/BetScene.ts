@@ -20,6 +20,9 @@ export class BetScene extends Phaser.Scene {
   private stakeText!: Phaser.GameObjects.Text;
   private potText!: Phaser.GameObjects.Text;
   private signIn!: ReturnType<typeof makeButton>;
+  private copyBtn!: ReturnType<typeof makeButton>;
+  private faucetBtn!: ReturnType<typeof makeButton> | null;
+  private copyTimer: Phaser.Time.TimerEvent | null = null;
   private next!: ReturnType<typeof makeButton>;
   private balance: bigint | null = null;
   private lastBalanceAt = 0;
@@ -68,6 +71,19 @@ export class BetScene extends Phaser.Scene {
     this.signIn.c.setDepth(10);
     this.next.c.setDepth(10).setVisible(false);
     makeButton(this, touch ? GW / 2 : 300, touch ? by + 150 : by, 'BACK', () => this.back(), touch ? { w: 480, h: 110, size: 40 } : { w: 240 }).c.setDepth(10);
+
+    // wallet tools, shown once you are signed in: copy your address, grab free test USDC
+    const ty = touch ? 450 : 432;
+    const tb = touch ? { w: 520, h: 100, size: 36 } : { w: 280, h: 58, size: 22 };
+    const hasFaucet = !!network.faucetUrl;
+    const tx = touch ? (hasFaucet ? GW / 2 - 290 : GW / 2) : (hasFaucet ? GW / 2 - 160 : GW / 2);
+    this.copyBtn = makeButton(this, tx, ty, 'COPY ADDRESS', () => void this.copyAddress(), tb);
+    this.copyBtn.c.setDepth(10).setVisible(false);
+    this.faucetBtn = null;
+    if (hasFaucet) {
+      this.faucetBtn = makeButton(this, touch ? GW / 2 + 290 : GW / 2 + 160, ty, 'GET TEST USDC', () => this.openFaucet(), tb);
+      this.faucetBtn.c.setDepth(10).setVisible(false);
+    }
 
     this.off.push(onWallet(() => this.refreshWallet()));
     this.input.keyboard!.on('keydown-ESC', () => this.back());
@@ -130,6 +146,8 @@ export class BetScene extends Phaser.Scene {
     const signedIn = !!api?.authenticated && !!api.address;
     this.signIn.c.setVisible(!signedIn);
     this.next.c.setVisible(signedIn);
+    this.copyBtn.c.setVisible(signedIn);
+    this.faucetBtn?.c.setVisible(signedIn);
     if (!api?.ready) {
       this.wallet.setText('Starting wallet…').setColor(DIM);
       return;
@@ -162,6 +180,43 @@ export class BetScene extends Phaser.Scene {
         })
         .catch(() => {});
     }
+  }
+
+  /** Copy the full wallet address so it can be pasted into the faucet or sent to a friend. */
+  private async copyAddress(): Promise<void> {
+    const addr = wallet()?.address;
+    if (!addr) return;
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(addr);
+      ok = true;
+    } catch {
+      // clipboard blocked (some embedded browsers): fall back to a temporary text field
+      const el = document.createElement('textarea');
+      el.value = addr;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      }
+      el.remove();
+    }
+    if (!ok) return this.say(`Could not copy. Your address is ${addr}`, GOLD);
+    this.copyBtn.setLabel('COPIED');
+    this.say('Wallet address copied. Paste it into the faucet to get free test USDC.', GOLD);
+    this.copyTimer?.remove();
+    this.copyTimer = this.time.delayedCall(1800, () => this.copyBtn.setLabel('COPY ADDRESS'));
+  }
+
+  /** Circle's faucet: choose Arc Testnet, paste the address, get free test USDC. */
+  private openFaucet(): void {
+    if (!network.faucetUrl) return;
+    window.open(network.faucetUrl, '_blank', 'noopener');
+    this.say('Faucet opened in a new tab: pick Arc Testnet and paste your address.', GOLD);
   }
 
   private onSignIn(): void {
