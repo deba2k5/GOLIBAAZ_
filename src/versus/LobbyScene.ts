@@ -167,13 +167,24 @@ export class LobbyScene extends Phaser.Scene {
     }
     this.say('Confirm the bet in your wallet…', CREAM);
     let hash: string | null = null;
+    let sentHash: string | null = null;
     try {
-      hash = await api.pay(treasury, amount, () => this.say('Payment sent. Waiting for it to confirm…', CREAM));
+      hash = await api.pay(treasury, amount, (h) => {
+        sentHash = h;
+        this.say('Payment sent. Waiting for it to confirm…', CREAM);
+      });
     } catch (err) {
+      const message = (err as Error).message || 'Payment cancelled.';
+      if (sentHash) {
+        // the transfer already left the wallet: tell the relay so it can match it or refund it
+        this.say(`${message} Checking whether your payment went through…`, GOLD);
+        this.net?.send({ t: 'paid', txHash: sentHash });
+        return;
+      }
       this.net?.send({ t: 'cancel' });
       this.busy = false;
       this.showMenu();
-      return this.say((err as Error).message || 'Payment cancelled.', RED);
+      return this.say(message, RED);
     }
     this.say('Verifying your bet…', CREAM);
     this.net?.send({ t: 'paid', txHash: hash });

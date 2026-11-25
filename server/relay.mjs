@@ -171,6 +171,7 @@ export function attachRelay(httpServer, opts = {}) {
   }
 
   function onCreate(ws, msg) {
+    log.info(`create requested, stake ${msg.stake}, user ${ws.user?.userId ?? 'anonymous'}`);
     leave(ws);
     if (rooms.size >= MAX_ROOMS) return fail(ws, 'Server is full, try again soon.');
     let stake = 0n;
@@ -236,8 +237,10 @@ export function attachRelay(httpServer, opts = {}) {
     const me = room.players.find((p) => p.ws === ws);
     if (!me || me.paid || me.verifying) return;
     me.verifying = true;
+    log.info(`room ${room.code}: slot ${me.slot} reports payment ${String(msg.txHash).slice(0, 12)}…`);
     try {
       const total = await escrow.acceptStake({ txHash: msg.txHash, from: me.wallet, matchId: room.id });
+      log.info(`room ${room.code}: slot ${me.slot} paid ${total}`);
       if (total < room.stake) {
         // short payment: give it back, they can try again
         escrow.enqueue(`match:${room.id}:short:${me.slot}`, me.wallet, total, 'refund');
@@ -257,6 +260,7 @@ export function attachRelay(httpServer, opts = {}) {
         startMatch(room);
       }
     } catch (err) {
+      log.error(`room ${room.code}: payment check failed for slot ${me.slot}:`, err?.message ?? err);
       fail(ws, err?.message ?? 'Payment failed.');
     } finally {
       me.verifying = false;
