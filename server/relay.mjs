@@ -62,9 +62,17 @@ export function attachRelay(httpServer, opts = {}) {
   let matchSeq = 0;
   const wss = new WebSocketServer({ noServer: true, maxPayload: 8 * 1024 });
 
+  // Browsers allowed to open a socket (comma-separated origins). Empty = any, which is fine locally.
+  const allowedOrigins = String(env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+
   httpServer.on('upgrade', (req, socket, head) => {
     // Vite's own HMR socket also arrives here; only take our path.
     if (!req.url || !req.url.startsWith(path)) return;
+    if (allowedOrigins.length && !allowedOrigins.includes(req.headers.origin ?? '')) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   });
 

@@ -1,0 +1,36 @@
+# One-click host for the GOLIBAAZ relay + escrow (needs a host that keeps WebSockets open;
+# Vercel serverless functions can't). Create it on Render: New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: golibaaz-relay
+    runtime: node
+    # A paid plan is needed on purpose: payouts are tracked in a ledger file that must survive
+    # restarts, and free instances have no persistent disk and spin down when idle.
+    plan: starter
+    disk:
+      name: ledger
+      mountPath: /var/data
+      sizeGB: 1
+    buildCommand: npm install --ignore-scripts
+    startCommand: node server/relay.mjs
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ALLOWED_ORIGINS
+        value: https://golibaaz.vercel.app
+      - key: GOLIBAAZ_LEDGER_PATH
+        value: /var/data/ledger.json
+      - key: ARC_NETWORK
+        value: testnet
+      - key: PRIVY_APP_ID
+        value: cmwn8o8ul00cg0gjwj5ly4uex
+      - key: MIN_STAKE_USDC
+        value: "0.1"
+      - key: MAX_STAKE_USDC
+        value: "25"
+      - key: HOUSE_FEE_BPS
+        value: "0"
+      # Secret: paste this in the Render dashboard, never commit it.
+      - key: GOLIBAAZ_TREASURY_PRIVATE_KEY
+        sync: false
