@@ -165,13 +165,16 @@ export class LobbyScene extends Phaser.Scene {
       if (!ok) return this.cancel();
       this.waiting('CANCEL', () => this.cancel());
     }
+    // nothing to click while the payment is in flight: cancelling now would discard the room it is for
+    this.panel?.destroy();
+    this.panel = null;
     this.say('Confirm the bet in your wallet…', CREAM);
     let hash: string | null = null;
     let sentHash: string | null = null;
     try {
       hash = await api.pay(treasury, amount, (h) => {
         sentHash = h;
-        this.say('Payment sent. Waiting for it to confirm…', CREAM);
+        this.say('Payment sent. Confirming on-chain, please wait…', GOLD);
       });
     } catch (err) {
       const message = (err as Error).message || 'Payment cancelled.';
@@ -186,7 +189,7 @@ export class LobbyScene extends Phaser.Scene {
       this.showMenu();
       return this.say(message, RED);
     }
-    this.say('Verifying your bet…', CREAM);
+    this.say('Payment confirmed. Locking in your bet…', GOLD);
     await this.reportPayment(hash);
   }
 

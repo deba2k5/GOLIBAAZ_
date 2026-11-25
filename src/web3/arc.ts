@@ -13,7 +13,7 @@ const NETWORKS = {
 const requested = (import.meta.env.VITE_ARC_NETWORK as string | undefined) === 'mainnet' ? 'mainnet' : 'testnet';
 export const network = { ...NETWORKS[requested], network: requested };
 export const chain: Chain = requested === 'mainnet' ? arcMainnet : arcTestnet;
-export const publicClient = createPublicClient({ chain, transport: http(network.rpcUrl) });
+export const publicClient = createPublicClient({ chain, transport: http(network.rpcUrl), pollingInterval: 500 });
 
 /** Base units (6dp) -> "1.5". */
 export function formatUsdc(v: string | bigint): string {
