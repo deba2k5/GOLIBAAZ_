@@ -50,7 +50,8 @@ export function attachRelay(httpServer, opts = {}) {
   const log = { info: (...a) => console.log('[relay]', ...a), error: (...a) => console.error('[relay]', ...a) };
   let escrow;
   try {
-    escrow = createEscrow(env, log);
+    // opts.escrow lets tests swap in a fake payment layer
+    escrow = opts.escrow ?? createEscrow(env, log);
   } catch (err) {
     log.error('escrow failed to start, running free play only:', err?.message ?? err);
     escrow = { enabled: false };
