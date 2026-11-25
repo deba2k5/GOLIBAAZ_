@@ -24,7 +24,7 @@ services:
       - key: ARC_NETWORK
         value: testnet
       - key: PRIVY_APP_ID
-        value: cmwn8o8ul00cg0gjwj5ly4uex
+        value: cmwwdhltk04660iik7v21fpnu
       - key: MIN_STAKE_USDC
         value: "0.1"
       - key: MAX_STAKE_USDC
