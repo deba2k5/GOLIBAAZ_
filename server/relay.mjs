@@ -298,6 +298,8 @@ export function attachRelay(httpServer, opts = {}) {
     ws.user = null;
     ws.budget = MAX_MSG_PER_SEC;
     const refill = setInterval(() => { ws.budget = MAX_MSG_PER_SEC; }, 1000);
+    // keep proxies from closing a quiet socket (e.g. while a player approves a payment in their wallet)
+    const keepAlive = setInterval(() => { if (ws.readyState === ws.OPEN) ws.ping(); }, 20_000);
     send(ws, { t: 'hello', ...(escrow.enabled ? escrow.info : { escrow: false }) });
 
     ws.on('message', (data) => {
@@ -317,6 +319,7 @@ export function attachRelay(httpServer, opts = {}) {
         case 'paid': return void onPaid(ws, msg);
         case 'cancel': return leave(ws);
         case 'result': return onResult(ws, msg);
+        case 'ping': return; // keepalive only, never forwarded
         default: {
           // game traffic for the other player
           const room = ws.room ? rooms.get(ws.room) : null;
@@ -328,6 +331,7 @@ export function attachRelay(httpServer, opts = {}) {
 
     ws.on('close', () => {
       clearInterval(refill);
+      clearInterval(keepAlive);
       leave(ws);
     });
     ws.on('error', () => ws.close());

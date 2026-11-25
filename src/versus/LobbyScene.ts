@@ -178,7 +178,7 @@ export class LobbyScene extends Phaser.Scene {
       if (sentHash) {
         // the transfer already left the wallet: tell the relay so it can match it or refund it
         this.say(`${message} Checking whether your payment went through…`, GOLD);
-        this.net?.send({ t: 'paid', txHash: sentHash });
+        await this.reportPayment(sentHash);
         return;
       }
       this.net?.send({ t: 'cancel' });
@@ -187,7 +187,27 @@ export class LobbyScene extends Phaser.Scene {
       return this.say(message, RED);
     }
     this.say('Verifying your bet…', CREAM);
-    this.net?.send({ t: 'paid', txHash: hash });
+    await this.reportPayment(hash);
+  }
+
+  /** Tell the relay about a payment. If the connection dropped meanwhile, reconnect first: the relay will
+   *  refund a payment for a room that no longer exists. */
+  private async reportPayment(txHash: string): Promise<void> {
+    try {
+      let net = this.net;
+      if (!net?.open) {
+        this.say('Reconnecting to confirm your payment…', GOLD);
+        net = await ensureNet();
+        if (session.info?.escrow) await ensureAuth(net);
+        this.net = net;
+        for (const f of this.off) f();
+        this.off = [net.on((m) => this.onMsg(m))];
+      }
+      net.send({ t: 'paid', txHash });
+    } catch (err) {
+      this.busy = false;
+      this.say(`Your payment was sent but we could not confirm it (${(err as Error).message}). Transaction: ${txHash}`, RED);
+    }
   }
 
   // ------------------------------------------------------------ relay messages

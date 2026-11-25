@@ -22,6 +22,7 @@ export class Net {
   private handlers = new Set<Handler>();
   private closeHandlers = new Set<() => void>();
   open = false;
+  private beat = 0;
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -37,6 +38,7 @@ export class Net {
       ws.onopen = () => {
         this.open = true;
         settled = true;
+        this.beat = window.setInterval(() => this.send({ t: 'ping' }), 15_000);
         resolve();
       };
       ws.onmessage = (ev) => {
@@ -50,6 +52,7 @@ export class Net {
       };
       ws.onclose = () => {
         this.open = false;
+        if (this.beat) window.clearInterval(this.beat);
         if (!settled) {
           settled = true;
           reject(new Error('Could not reach the game server.'));
@@ -77,6 +80,7 @@ export class Net {
   }
 
   close(): void {
+    if (this.beat) window.clearInterval(this.beat);
     this.handlers.clear();
     this.closeHandlers.clear();
     this.ws?.close();
